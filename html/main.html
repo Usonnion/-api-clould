@@ -1,0 +1,153 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title></title>
+    <link rel="stylesheet" href="../css/api.css">
+    <link rel="stylesheet" href="../css/aui.2.0.css">
+    <script src="../script/jquery2.1.js"></script>
+    <style type="text/css">
+        html, body {
+            height: 100%;
+        }
+
+        .aui-list:before {
+            height: 0
+        }
+    </style>
+    <link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+<header class="aui-bar aui-bar-nav" id="header">
+    <div class="aui-title">首页</div>
+    <a class="aui-pull-right aui-btn" id="add-part"
+       onclick="logoutSystem()">
+        <span>退出</span>
+    </a>
+</header>
+<div class="aui-content-padded">
+    <p>切换u8账套时会清除扫描过的数据</p>
+    <ul class="aui-list aui-form-list aui-margin-t-10">
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label-icon">
+                    <i class="aui-iconfont aui-icon-info"></i>
+                </div>
+                <div class="aui-list-item-input">
+                    <select id="u8Account" onchange="onU8AccountSelect()">
+                        <option value="">请选择u8帐套</option>
+                    </select>
+                </div>
+            </div>
+        </li>
+    </ul>
+</div>
+<section class="aui-grid aui-margin-t-5">
+    <div class="aui-row">
+        <div class="aui-col-xs-4" onclick="downloadBarcode()">
+            <!--<div class="aui-badge" style="background-color: #ff2600" id="dealt-badge">0</div>-->
+            <img src="../image/download.png" style="width: 1.5rem; height: 1.5rem" />
+            <div class="aui-grid-label">同步数据</div>
+        </div>
+        <!--<div class="aui-col-xs-4"-->
+             <!--onclick="uploadBarcode();">-->
+            <!--&lt;!&ndash;<div class="aui-badge" style="background-color: #ff2600">0</div>&ndash;&gt;-->
+            <!--<img src="../image/upload.png" style="width: 1.5rem; height: 1.5rem" />-->
+            <!--<div class="aui-grid-label">上传数据</div>-->
+        <!--</div>-->
+        <div class="aui-col-xs-4"
+             onclick="openWindow('scanner','./scanner.html')">
+            <!--<div class="aui-badge" style="background-color: #ff2600" id="dealt-unsend-badge">0</div>-->
+            <img src="../image/scanner.png" style="width: 1.5rem; height: 1.5rem" />
+            <div class="aui-grid-label">扫描</div>
+        </div>
+        <div class="aui-col-xs-4"
+             onclick="openWindow('input','./input.html')">
+            <!--<div class="aui-badge" style="background-color: #ff2600" id="dealt-unsend-badge">0</div>-->
+            <img src="../image/input.png" style="width: 1.5rem; height: 1.5rem" />
+            <div class="aui-grid-label">手动录入</div>
+        </div>
+        <div class="aui-col-xs-4"
+             onclick="openWindow('data','./data.html')">
+            <!--<div class="aui-badge" style="background-color: #ff2600" id="dealt-unsend-badge">0</div>-->
+            <img src="../image/data.png" style="width: 1.5rem; height: 1.5rem" />
+            <div class="aui-grid-label">数据</div>
+        </div>
+        <div class="aui-col-xs-4"
+             onclick="openWindow('history','./history_win.html')">
+            <!--<div class="aui-badge" style="background-color: #ff2600" id="dealt-unsend-badge">0</div>-->
+            <img src="../image/history.png" style="width: 1.5rem; height: 1.5rem" />
+            <div class="aui-grid-label">历史扫描</div>
+        </div>
+    </div>
+</section>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/common.js"></script>
+<script src="../script/dao/data-dao.js"></script>
+<script src="../script/loaders/login-loader.js"></script>
+<script type="text/javascript">
+  var u8Accounts = [];
+  apiready = function () {
+    var old8Account = isEmpty($api.getStorage('u8Account')) ? { value: '', name: '请选择u8帐套' } : JSON.parse($api.getStorage('u8Account'));
+    u8Accounts = [old8Account];
+    $('#u8Account').html('<option value="' + old8Account.value + '">' + old8Account.name + '</option>');
+    $('#u8Account').val(old8Account.value);
+    requestDatas('/barcode/getU8Account', {}, function (data) {
+      if (data.accountList && data.accountList.length > 0) {
+        var str = '<option value="">请选择u8帐套</option>';
+        data.accountList.map(function (item) {
+          str += '<option value="' + item.value + '">' + item.name + '</option>';
+        });
+        u8Accounts = data.accountList;
+        $('#u8Account').html(str);
+        $('#u8Account').val(old8Account.value);
+      }
+    });
+  }
+
+  function downloadBarcode() {
+    var u8Account = $('#u8Account').val();
+    api.showProgress();
+    requestDatas('/barcode/syncData', { u8Account: u8Account }, function (data) {
+      insertProducts(data.dataList);
+      api.hideProgress();
+      api.toast({ msg: '数据同步完成' });
+    });
+//    api.showProgress();
+//    insertProducts([{
+//      cbarcode: 'MN-002768-01',//条码
+//      corder: '1111',//来源单据编码(订单)
+//      cpname: '111',//产品名称
+//      cpcode: '111',//产品编码
+//      cspec: '1111',//产品规格
+//      cunitname: '1111',//单位名称
+//    }]);
+//    api.hideProgress();
+//    api.toast({ msg: '同步完成' });
+  }
+
+  function onU8AccountSelect() {
+    var u8AccountName = $('#u8Account').val();
+    var u8Account = { name: '', value: '请选择u8帐套' };
+    u8Accounts.map(function (item) {
+      if (item.name == u8AccountName) {
+        u8Account = item;
+      }
+    })
+    var old8Account = $api.getStorage('u8Account');
+    if (! old8Account || old8Account.name !== u8Account.name) {
+      clearDBCache();
+      $api.setStorage('u8Account', JSON.stringify(u8Account));
+    }
+  }
+
+  function logoutSystem() {
+    loginLoader.resetLoginUserInfo();
+    closeWindow();
+  }
+</script>
+</html>

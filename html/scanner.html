@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title></title>
+    <link rel="stylesheet" href="../css/api.css">
+    <link rel="stylesheet" href="../css/aui.2.0.css">
+    <script src="../script/jquery2.1.js"></script>
+    <style type="text/css">
+        html, body {
+            height: 100%;
+        }
+
+        .aui-list:before {
+            height: 0
+        }
+
+        .user-pic {
+            border: 1px solid #ffffff;
+            -webkit-background-size: cover;
+            object-fit: cover;
+            background-repeat: no-repeat;
+            object-position: center;
+        }
+    </style>
+    <link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+<header class="aui-bar aui-bar-nav" id="header">
+    <div class="aui-pull-left aui-btn aui-iconfont aui-icon-left" onclick="api.closeWin();">返回</div>
+    <div class="aui-title">请扫描</div>
+    <a class="aui-pull-right aui-btn">
+        <span></span>
+    </a>
+</header>
+<ul class="aui-list aui-form-list">
+    <li class="aui-list-item">
+        <div class="aui-list-item-inner ">
+            <div class="aui-list-item-input ">
+                <input type="text" id="barcode" placeholder="请扫描">
+            </div>
+        </div>
+    </li>
+</ul>
+<div id="content">
+</div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/common.js"></script>
+<script src="../script/dao/data-dao.js"></script>
+<script type="text/javascript">
+  var currentBarCode = '';
+//  $('#barcode').bind('input', function (e) {
+//    scanned(e.target.value)
+//  });
+  apiready = function () {
+    $('#barcode').focus();
+    $('#barcode').bind('input', function (e) {
+      scanned(e.target.value)
+    });
+  };
+
+  function scanned(barcode) {
+    var start = currentBarCode.length;
+    currentBarCode = barcode.substring(start, barcode.length);
+    $('#barcode').val(currentBarCode);
+     var result = insertScanBarCode(currentBarCode);
+    api.toast({ msg: result.msg });
+     if (result.status !== 0 && result.data) {
+       var str = '<ul class="aui-list">';
+       str += renderCommonKeyValueCell('来源单据编码(订单)', result.data.corder)
+       str += renderCommonKeyValueCell('产品编码', result.data.cpcode)
+       str += renderCommonKeyValueCell('产品名称', result.data.cpname)
+       str += renderCommonKeyValueCell('产品规格', result.data.cspec)
+       str += renderCommonKeyValueCell('单位名称', result.data.cunitname)
+       str += '</ul>';
+       $('#content').html(str);
+     } else {
+       $('#content').html('<div class="aui-text-center aui-padded-t-10">商品不存在</div>');
+     }
+  }
+</script>
+</html>

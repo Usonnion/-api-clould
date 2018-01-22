@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title></title>
+    <link rel="stylesheet" href="../css/api.css">
+    <link rel="stylesheet" href="../css/aui.2.0.css">
+    <script src="../script/jquery2.1.js"></script>
+    <style type="text/css">
+        html, body {
+            height: 100%;
+        }
+
+        .aui-list:before {
+            height: 0
+        }
+    </style>
+    <link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+<header class="aui-bar aui-bar-nav" style="position: fixed; z-index: 200" id="header">
+    <div class="aui-pull-left aui-btn aui-iconfont aui-icon-left" onclick="api.closeWin();">返回</div>
+    <div class="aui-title">
+        <select id="warehouse" style="color: #fff">
+            <option value="">请选择上传的仓库</option>
+        </select></div>
+    <a class="aui-pull-right aui-btn" onclick="uploadBarcode()">
+        <span>上传</span>
+    </a>
+</header>
+<div class="aui-margin-t-50">
+    <div class="aui-tab" id="tab">
+        <div class="aui-tab-item aui-active">已扫描
+            <div class="aui-badge" id="scanedCount"></div>
+        </div>
+        <div class="aui-tab-item">未扫描
+            <div class="aui-badge" id="unScanedCount"></div>
+        </div>
+        <div class="aui-tab-item">全部
+            <div class="aui-badge" id="totalCount"></div>
+        </div>
+    </div>
+</div>
+<div class="aui-content" id="content">
+    <!--<div class="aui-bg-white aui-padded-10   aui-margin-b-5">-->
+    <!--<p class="overf"><span class="aui-pull-left">11234573820848423</span><span class="aui-pull-right aui-text-danger">待审核</span></p>-->
+    <!--<p>产品编码：<span></span></p>-->
+    <!--<p>产品名称：<span></span></p>-->
+    <!--</div>-->
+</div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/common.js"></script>
+<script src="../script/dao/data-dao.js"></script>
+<script src="../script/aui-tab.js"></script>
+<script src="../script/loaders/login-loader.js"></script>
+<script type="text/javascript">
+  var allProducts = [];
+  var scannedProducts = [];
+  var unScannedProducts = [];
+  var wareHouseList = [];
+  apiready = function () {
+    allProducts = getAllData();
+    var allBarcode = getScanBarcode();
+    allProducts.map(function (item) {
+      var filterItems = allBarcode.filter(function (barcode) {
+        return barcode.cbarcode === item.cbarcode;
+      });
+      if (filterItems.length > 0) {
+        item.status = '已扫描';
+        scannedProducts.push(item)
+      } else {
+        item.status = '未扫描';
+        unScannedProducts.push(item);
+      }
+    });
+    $('#scanedCount').text(scannedProducts.length);
+    $('#unScanedCount').text(unScannedProducts.length);
+    $('#totalCount').text(allProducts.length);
+    renderContent(scannedProducts);
+    var tab = new auiTab({
+      element: document.getElementById("tab")
+    }, function (ret) {
+      if (ret) {
+        var index = ret.index;
+        if (index == 1) {
+          renderContent(scannedProducts)
+        } else if (index == 2) {
+          renderContent(unScannedProducts)
+        } else {
+          renderContent(allProducts)
+        }
+      }
+    })
+
+    var u8Account = $api.getStorage('u8Account') ? JSON.parse($api.getStorage('u8Account')) : {
+      name: '',
+    };
+
+    requestDatas('/barcode/getU8Warehouse', { u8Account: u8Account.name }, function (data) {
+      var str = '<option value="">请选择上传的仓库</option>';
+      wareHouseList = data.warehouseList;
+      data.warehouseList.map(function (item) {
+        str += '<option value="' + item.value + '">' + item.name + '</option>';
+      })
+      $('#warehouse').html(str);
+    })
+  }
+
+  function renderContent(products) {
+    var str = '';
+    if (products.length <= 0) {
+      $('#content').html('<div class="aui-text-center aui-padded-t-10">暂无数据</div>');
+      return;
+    }
+    products.map(function (item) {
+      str += '<div class="aui-bg-white aui-padded-10   aui-margin-b-5">' +
+        '<p class="overf"><span class="aui-pull-left">订单号：' + item.corder + '</span><span class="aui-pull-right aui-text-danger">' + item.status + '</span></p>' +
+        '<p>产品编码：<span>' + item.cpcode + '</span></p>' +
+        '<p>产品名称：<span>' + item.cpname + '</span></p>' +
+        '</div>';
+    })
+    $('#content').html(str);
+  }
+
+  function uploadBarcode() {
+    var warehouse = $('#warehouse').val();
+    if (isEmpty(warehouse)) {
+      api.toast({ msg: '请选择仓库' });
+      return;
+    }
+    var warehouseName = '';
+    wareHouseList.map(function(item) {
+        if (item.value == warehouse) {
+          warehouseName = item.name;
+        }
+    });
+    api.showProgress();
+    var u8Account = $api.getStorage('u8Account') ? JSON.parse($api.getStorage('u8Account')) : {
+      value: '',
+      name: '请选择u8帐套'
+    };
+    var iperson = loginLoader.getLoginUserInfo().iperson;
+    if (scannedProducts.length <= 0) {
+      api.hideProgress();
+      api.toast({ msg: '暂无扫描数据' });
+      return
+    }
+    var barcodeList = '';
+    scannedProducts.map(function (item) {
+      barcodeList += item.cbarcode + '@@';
+    });
+    barcodeList.substring(0, barcodeList.length - 2);
+    var params = {
+      cdevid: api.deviceId,
+      iperson: iperson,
+      u8Account: u8Account.value,
+      u8WarehouseName: warehouseName,
+      u8Warehouse: warehouse,
+      barcodeList: barcodeList.substring(0, barcodeList.length - 2)
+    }
+    requestDatas('/barcode/uploadData', params, function (data) {
+      clearDBCache();
+      api.hideProgress();
+      api.closeWin();
+    });
+  }
+</script>
+</html>

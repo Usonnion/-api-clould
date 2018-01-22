@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>登录</title>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <link rel="stylesheet" href="../css/aui.2.0.css">
+    <link rel="stylesheet" href="../css/common.css">
+    <script src="../script/jquery2.1.js"></script>
+</head>
+<body>
+<div class=" aui-margin-t-15 aui-margin-r-20">
+    <div class="aui-iconfont aui-icon-gear aui-font-size-20 aui-pull-right aui-text-secondary"
+         onclick="openRegister();">
+        <span class="aui-font-size-16 aui-text-secondary"> 注册 </span>
+    </div>
+    <div class="aui-clearfix"></div>
+</div>
+<div class="aui-content-padded">
+    <div class="aui-btn aui-btn-block" onclick="syncUsers();">
+        同步用户
+    </div>
+</div>
+<div class="aui-content-padded">
+    <ul class="aui-list aui-form-list aui-margin-t-10">
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label-icon">
+                    <i class="aui-iconfont aui-icon-my"></i>
+                </div>
+                <div class="aui-list-item-input">
+                    <input type="text" id="username" placeholder="请输入用户名">
+                </div>
+            </div>
+        </li>
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label-icon">
+                    <i class="aui-iconfont aui-icon-lock"></i>
+                </div>
+                <div class="aui-list-item-input">
+                    <input type="password" id="password" placeholder="请输入密码">
+                </div>
+                <div class="aui-list-item-label-icon">
+                    <i class="aui-iconfont aui-icon-display" onclick="togglePwdVisable('password');"></i>
+                </div>
+            </div>
+        </li>
+    </ul>
+</div>
+<div class="aui-content-padded aui-margin-t-40">
+    <div class="aui-btn aui-btn-info aui-btn-block" onclick="login();">
+        登录
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/common.js"></script>
+<script src="../script/const.js"></script>
+<script src="../script/loaders/login-loader.js"></script>
+<script src="../script/dao/data-dao.js"></script>
+<script type="text/javascript">
+  apiready = function () {
+    openDB();
+    initData();
+  };
+
+  function syncUsers() {
+    api.showProgress();
+    requestDatas('/barcode/syncUser', {}, function(data) {
+      clearAccounts();
+      insertAccounts(data.userList);
+      api.hideProgress();
+      api.toast({ msg: '用户同步完成' });
+    });
+//    const users = [
+//      {
+//        cusecode: '111',
+//        cusepassword: '111',
+//        ccode: '111',
+//      },
+//      {
+//        cusecode: '222',
+//        cusepassword: '222',
+//        ccode: '222',
+//      },
+//    ];
+//    api.showProgress();
+//    clearAccounts();
+//    insertAccounts(users);
+//    api.hideProgress();
+//    api.toast({ msg: '同步完成' });
+  }
+
+  function initData() {
+    $('#username').val($api.getStorage('username'));
+  }
+
+  function login() {
+    if (! checkEmpty()) {
+      api.toast({ msg: "请输入用户名和密码" });
+      return;
+    }
+    var password = $('#password').val();
+    var param = {
+      username: $('#username').val(),
+      password: password
+    }
+    loginLoader.login(param, function (data) {
+      var oldUsername = $api.getStorage('username');
+      if (oldUsername !==  $('#username').val()) {
+        $api.setStorage('username', $('#username').val());
+        clearDBCache();
+      }
+      $('#password').val('');
+      api.hideProgress();
+      openWindow("main", "./main.html");
+    });
+  }
+
+  function checkEmpty() {
+    return ($('#username').val() && $('#password').val());
+  }
+
+  function openRegister() {
+    openWindow("register_page", "./register.html");
+  }
+
+  function togglePwdVisable(pwdId) {
+    var type = $('#' + pwdId).attr('type');
+    if (type) {
+      $('#' + pwdId).removeAttr('type');
+    } else {
+      $('#' + pwdId).attr('type', 'password');
+    }
+  }
+
+</script>
+</html>
